@@ -42,9 +42,21 @@ module ActiveRecord
     
     module MysqlSpatialAdapter
       
+      # Last revision had SpatialColumn explicitly inheriting from ActiveRecord::ConnectionAdapters::MysqlColumn.
+      # This broke in rails 3.2+ (no more ActiveRecord::ConnectionAdapters::MysqlColumn).  Instead, dynamically
+      # select appropriate column class (thanks https://github.com/mrzor/enum_column/commit/77dac597b221ea1e2fe8b4ac71299687821d7ecc).
+
+      spatial_column_base_class = if defined? ActiveRecord::ConnectionAdapters::Mysql2Column
+        ActiveRecord::ConnectionAdapters::Mysql2Column
+      elsif defined? ActiveRecord::ConnectionAdapters::MysqlColumn
+        ActiveRecord::ConnectionAdapters::MysqlColumn
+      elsif defined? ActiveRecord::ConnectionAdapters::Mysql2Adapter::Column
+        ActiveRecord::ConnectionAdapters::Mysql2Adapter::Column
+      elsif defined? ActiveRecord::ConnectionAdapters::MysqlAdapter::Column
+        ActiveRecord::ConnectionAdapters::MysqlAdapter::Column
+      end
       
-      class SpatialColumn < ConnectionAdapters::MysqlColumn
-        
+      class SpatialColumn < spatial_column_base_class  
         
         def initialize(factory_settings_, table_name_, name_, default_, sql_type_=nil, null_=true)
           @factory_settings = factory_settings_
